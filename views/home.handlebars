@@ -1,0 +1,147 @@
+<div class="container justify-content-center">
+    <div class="col-12">
+        <div class="mb-3">
+            <div class="mb-3">
+                <label for="titulo-tarea" class="form-label">Tareas</label>
+                <textarea class="form-control" id="titulo-tarea" rows="3"></textarea>
+                <button id="agregar-tarea" type="button" class="btn btn-outline-primary">Nueva tarea</button>
+                <button id="save-tarea" type="button" class="btn btn-outline-primary">Guardar edición</button>
+            </div>
+        </div>
+    </div>
+    <div class="container" id="tareas-container">
+    </div>
+
+    <script>
+        getTareas();
+        const textarea = document.getElementById('titulo-tarea')
+        const addButton = document.getElementById('agregar-tarea')
+        const saveButton = document.getElementById('save-tarea')
+        const tareasContainer = document.getElementById('tareas-container')
+
+
+        creatingStatus();
+        addButton.addEventListener('click', addTarea)
+        saveButton.addEventListener('click', saveTarea)
+
+        let tareas = []
+        let editingTarea;
+
+
+        function addTarea() {
+            console.log("Click agregar tarea")
+            const tarea = textarea.value
+            console.log("Tarea: ", tarea)
+
+            fetch('http://localhost:3000/api/tareas', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ tarea })
+            })
+                .then((response) => response.json())
+                .then((data) => {
+                    console.log("Create result: ", data)
+                    getTareas();
+                });
+        }
+
+        function saveTarea() {
+            console.log("Click guardar tarea")
+            const tarea = textarea.value
+            console.log("Tarea: ", tarea)
+
+            fetch('http://localhost:3000/api/tareas/' + editingTarea._id, {
+                method: 'PUT',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ tarea })
+            })
+                .then((response) => response.json())
+                .then((data) => {
+                    console.log("Update result: ", data)
+                    creatingStatus()
+                    getTareas();
+                });
+        }
+
+        function creatingStatus() {
+            state = "creating"
+            textarea.value = ""
+            saveButton.style.display = 'none'
+            addButton.style.display = 'block'
+        }
+
+
+        function editingStatus() {
+            state = "editing"
+            textarea.value = editingTarea.tarea
+            addButton.style.display = 'none'
+            saveButton.style.display = 'block'
+        }
+
+
+        function getTareas() {
+            fetch('http://localhost:3000/api/tareas').then((response) => response.json())
+                .then(({ data }) => {
+                    tareasContainer.innerHTML = "";
+                    console.log("Tareas: ", data)
+                    tareas = data;
+                    for (let tarea of data) {
+                        tareasContainer.innerHTML += `
+                        <div class="col-12">
+                            <div class="mb-3">
+                                <div class="card">
+                                    <div class="card-body">
+                                        ${tarea.tarea}
+                                    </div>
+                                </div>
+                                <div class="btn-group justify-content-end" role="group" aria-label="Basic outlined example">
+                                    <button type="button" id="${tarea._id}" class="btn btn-outline-primary btn-update">Editar</button>
+                                    <button type="button" id="${tarea._id}" class="btn btn-outline-primary btn-delete">Eliminar</button>
+                                </div>
+                            </div>
+                        </div>
+                        `
+                    }
+                    getDeleteButtons()
+                    getUpdateButtons()
+                });
+        }
+
+        function getUpdateButtons() {
+            const updateButtons = document.querySelectorAll('.btn-update')
+            console.log("update buttons: ", updateButtons)
+            for (let updateButton of updateButtons) {
+                updateButton.addEventListener('click', () => {
+                    const tarea = tareas.find(tarea => tarea._id === updateButton.id)
+                    console.log("Click editar: ", updateButton.id, tarea)
+                    editingTarea = tarea
+                    editingStatus()
+
+                })
+            }
+        }
+
+        function getDeleteButtons() {
+            const deleteButtons = document.querySelectorAll('.btn-delete')
+            console.log("delete buttons: ", deleteButtons)
+            for (let deleteButton of deleteButtons) {
+                deleteButton.addEventListener('click', () => {
+                    fetch('http://localhost:3000/api/tareas/' + deleteButton.id, {
+                        method: 'DELETE',
+                    }).then((response) => response.json())
+                        .then((data) => {
+                            console.log("Delete result: ", data)
+                            getTareas();
+                        });
+                })
+            }
+        }
+
+
+    </script>
